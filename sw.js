@@ -1,8 +1,8 @@
 // Offline support: app shell is cached on install; map tiles are cached as you browse.
-const VERSION = "dm-v27";
+const VERSION = "dm-v28";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "data.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "img/atiqur.jpg",
   "vendor/leaflet/leaflet.css",
-  "vendor/leaflet/leaflet.js", "analytics.js", "live.js", "firebase-config.js",
+  "vendor/leaflet/leaflet.js", "analytics.js", "live.js", "alerts.js", "i18n.js", "firebase-config.js",
   "fonts/dm-sans.woff2", "fonts/funnel-display.woff2", "fonts/li-ador-noirrit-regular.ttf", "fonts/li-ador-noirrit-semibold.ttf", "fonts/li-ador-noirrit-bold.ttf", "fonts/li-ador-noirrit-light.ttf"];
 const TILES = "dm-tiles";
 const MAX_TILES = 600;

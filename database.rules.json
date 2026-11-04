@@ -12,6 +12,27 @@
         "t": { ".validate": "newData.val() === now" },
         "$other": { ".validate": false }
       }
+    },
+    "alerts": {
+      ".read": true,
+      "$id": {
+        ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+        ".validate": "newData.hasChildren(['title', 'level', 'from', 't', 'by'])",
+        "title": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 140" },
+        "titleBn": { ".validate": "newData.isString() && newData.val().length <= 140" },
+        "body": { ".validate": "newData.isString() && newData.val().length <= 600" },
+        "bodyBn": { ".validate": "newData.isString() && newData.val().length <= 600" },
+        "level": { ".validate": "newData.val() === 'info' || newData.val() === 'delay' || newData.val() === 'closed'" },
+        "stations": { ".validate": "newData.isString() && newData.val().length <= 400" },
+        "from": { ".validate": "newData.isNumber()" },
+        "until": { ".validate": "newData.isNumber() && newData.val() > now" },
+        "t": { ".validate": "newData.val() === now" },
+        "by": { ".validate": "newData.val() === auth.uid" },
+        "$other": { ".validate": false }
+      }
+    },
+    "admins": {
+      "$uid": { ".read": "auth != null && auth.uid === $uid" }
     }
   }
 }
