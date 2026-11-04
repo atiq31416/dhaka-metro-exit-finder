@@ -1,8 +1,8 @@
 // Offline support: app shell is cached on install; map tiles are cached as you browse.
-const VERSION = "dm-v21";
+const VERSION = "dm-v27";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "data.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "img/atiqur.jpg",
   "vendor/leaflet/leaflet.css",
-  "vendor/leaflet/leaflet.js", "analytics.js", "firebase-config.js",
+  "vendor/leaflet/leaflet.js", "analytics.js", "live.js", "firebase-config.js",
   "fonts/dm-sans.woff2", "fonts/funnel-display.woff2", "fonts/li-ador-noirrit-regular.ttf", "fonts/li-ador-noirrit-semibold.ttf", "fonts/li-ador-noirrit-bold.ttf", "fonts/li-ador-noirrit-light.ttf"];
 const TILES = "dm-tiles";
 const MAX_TILES = 600;
@@ -23,6 +23,7 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET") return;
   if (url.hostname.endsWith("nominatim.openstreetmap.org")) return; // live search only
+  if (/firebaseio\.com|firebasedatabase\.app|identitytoolkit\.googleapis\.com|securetoken\.googleapis\.com/.test(url.hostname)) return; // live trains: never cache
   if (/google-analytics\.com|googletagmanager\.com|firebase(installations|logging)?\.googleapis\.com|analytics\.google\.com/.test(url.hostname)) return; // analytics: never cache
   if (url.hostname.endsWith("tile.openstreetmap.org")) {
     e.respondWith(caches.open(TILES).then(async (c) => {

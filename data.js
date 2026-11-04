@@ -23,6 +23,8 @@ window.METRO = {
       friday:  { label: "Friday", fromNorth: ["15:00", "21:50"], fromMotijheel: ["15:20", "22:30"] }
     },
     headway: "About every 6 to 8 min at peak hours, 10 to 12 min off-peak (approximate)",
+    // Used to estimate where trains are when no rider is sharing live. Approximate, tune when DMTCL publishes exact headways.
+    headwayMin: { peak: 8, offPeak: 10, peakHours: [["07:30", "11:00"], ["16:30", "20:30"]], fridayAllOffPeak: true },
     endToEndMin: 38
   },
 
