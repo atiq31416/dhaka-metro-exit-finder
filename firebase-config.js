@@ -12,5 +12,5 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "772109446121",
   appId: "1:772109446121:web:e31ec7cc2725860f5df978",
   measurementId: "G-20B6HJ0PYF",
-  databaseURL: ""
+  databaseURL: "https://dhaka-metro-exit-finder-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
