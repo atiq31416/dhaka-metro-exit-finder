@@ -1,5 +1,5 @@
 // Offline support: app shell is cached on install; map tiles are cached as you browse.
-const VERSION = "dm-v25";
+const VERSION = "dm-v26";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "data.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "img/atiqur.jpg",
   "vendor/leaflet/leaflet.css",
   "vendor/leaflet/leaflet.js", "analytics.js", "live.js", "firebase-config.js",

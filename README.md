@@ -4,9 +4,9 @@ Made by **Atiqur Rahaman**, CEO & Founder @ Design Monks & Dev Monks · [LinkedI
 
 An installable web app (PWA) for Dhaka Metro Rail. It has no build step: every file is plain HTML, CSS and JS.
 
-- **Home screen** has two modes, **Find Metro Rail** and **Find Exit** (the default). The app remembers the last one you used.
+- **Navigation** tab (home screen) has two modes, **Find Metro Rail** and **Find Exit** (the default). The app remembers the last one you used.
 - **Find Metro Rail**: pick your station and the station you're going to. The app says which train to board (named by its last station, as the platform signs are), which side of the tracks its platform is on, the number of stops, travel time, fare and the next train. A top-view drawing of the station highlights your platform, and with the compass on it turns so it matches where you're facing ("Your platform is on your right"). The side assumes trains keep left, which is not yet verified at every station.
-- **Find Exit** (Exit tab): detects your nearest station with GPS (or you pick one). You choose a destination from nearby places, search for one (OpenStreetMap search, needs internet), or tap the map. The app tells you which exit to take and which way to walk after you come out. It also has a compass arrow and a Google Maps walking link.
+- **Find Exit** (Navigation tab): detects your nearest station with GPS (or you pick one). You choose a destination from nearby places, search for one (OpenStreetMap search, needs internet), or tap the map. The app tells you which exit to take and which way to walk after you come out. It also has a compass arrow and a Google Maps walking link.
 - **Stations** tab: all 16 stations from Uttara North to Motijheel. Each one lists its exits, nearby places and the best exit for each place.
 - **Fares** tab: fare between any two stations, plus the MRT/Rapid Pass price (10% off).
 - **Info** tab: timings, whether trains are running now (Dhaka time), ticket and on-board rules, and notes on how reliable the data is.
