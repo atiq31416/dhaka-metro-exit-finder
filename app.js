@@ -77,8 +77,8 @@
     const d = day === "Fri" ? M.schedule.days.friday : M.schedule.days.regular;
     const open = toMin(d.fromNorth[0]), close = toMin(d.fromMotijheel[1]);
     if (mins < open) return { on: false, text: `Opens ${fmt12(d.fromNorth[0])}` };
-    if (mins > close) return { on: false, text: "Closed for today" };
-    return { on: true, text: `Running · last from Motijheel ${fmt12(d.fromMotijheel[1])}` };
+    if (mins > close) return { on: false, text: "Closed" };
+    return { on: true, text: `Open till ${fmt12(d.fromMotijheel[1])}` };
   }
   function renderStatus() {
     const s = serviceStatus();

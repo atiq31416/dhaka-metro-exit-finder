@@ -270,3 +270,4 @@ dialog { border: 0; border-radius: 22px; background: var(--card); }
 .plat-n { position: absolute; inset: 0; pointer-events: none; transition: transform .25s ease-out; }
 .plat-n b { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { #plat-rot, .plat-n { transition: none; } }
+.top .status { white-space: nowrap; }
