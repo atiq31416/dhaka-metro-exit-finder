@@ -24,7 +24,7 @@ function load() {
     const a = app.getApps().length ? app.getApp() : app.initializeApp(cfg);
     fb = { db, au, d: db.getDatabase(a), auth: au.getAuth(a) };
     return fb;
-  })().catch((e) => { loading = null; LIVE.state = "error"; LIVE.error = "Live rider data is not reachable right now, so only estimates are shown."; emit(); throw e; });
+  })().catch((e) => { loading = null; LIVE.state = "error"; LIVE.error = "Live trains could not load."; emit(); throw e; });
   return loading;
 }
 

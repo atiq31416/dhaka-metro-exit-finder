@@ -100,7 +100,7 @@
       shareFix(state.pos, state.acc, Date.now()); // p.timestamp is unreliable on some phones
       const n = nearestStation(state.pos);
       // Re-draw only when something visible changes, so typing and the map are not interrupted.
-      if ((first || prevNear !== n.s.id) && (current() === "exit" || current() === "stations" || current() === "trains")) render(true);
+      if ((first || prevNear !== n.s.id) && (current() === "exit" || current() === "stations")) render(true);
     }, (err) => {
       track("location_permission", { state: err.code === 1 ? "denied" : "error" });
       state.geoErr = err.code === 1 ? "Location permission was denied. You can still pick your station by hand, or allow location in your browser's site settings." : "Could not get your location right now.";
@@ -134,7 +134,7 @@
 
   // ---------- tab bar animation ----------
   // A lime pill slides under the tabs and follows the active one while it widens.
-  const TAB_ORDER = ["exit", "trains", "stations", "fares", "info"];
+  const TAB_ORDER = ["exit", "stations", "fares", "info"];
   let lastTab = null, indRaf = 0;
   function moveIndicator(animate) {
     const bar = $("#tabs"), on = bar.querySelector("a.on");
@@ -168,8 +168,7 @@
     const y = window.scrollY;
     if (map) { map.remove(); map = null; }
     const v = $("#view");
-    if (tab === "trains") v.innerHTML = viewTrains();
-    else if (tab === "stations") v.innerHTML = viewStations();
+    if (tab === "stations") v.innerHTML = viewStations();
     else if (tab === "station") v.innerHTML = viewStation(location.hash.split("/")[1]);
     else if (tab === "fares") v.innerHTML = viewFares();
     else if (tab === "info") v.innerHTML = viewInfo();
@@ -275,34 +274,23 @@
   }
 
   // ---------- stations ----------
-  function lineList(withTrains) {
+  function viewStations() {
     const near = state.pos ? nearestStation(state.pos) : null;
-    const list = `<ul class="line">
+    return `
+    <h2>${esc(M.line.name)} <span class="muted small">${esc(M.line.nameBn)}</span></h2>
+    <p class="muted small">Uttara North to Motijheel, ${S.length} stations, ${M.line.lengthKm} km. Tap a station for its exits.</p>
+    <section class="card" id="live-card"></section>
+    <section class="card">
+      <div class="trains-wrap"><div class="trains" id="trains" aria-hidden="true"></div>
+      <ul class="line">
         ${S.map((s) => `<li><a href="#station/${s.id}" class="${near && near.s.id === s.id && near.d < 1500 ? "near" : ""}">
           <span class="stop"></span>
           <span class="nm"><b>${esc(s.name)}</b><span class="muted small">${s.bn}${s.transfer ? " · interchange (future)" : ""}</span></span>
           <span class="code">${near && near.s.id === s.id ? fmtDist(near.d) + " · " : ""}${s.code}</span></a></li>`).join("")}
-      </ul>`;
-    return withTrains ? `<div class="trains-wrap"><div class="trains" id="trains" aria-hidden="true"></div>${list}</div>` : list;
-  }
-  function viewStations() {
-    return `
-    <h2>${esc(M.line.name)} <span class="muted small">${esc(M.line.nameBn)}</span></h2>
-    <p class="muted small">Uttara North to Motijheel, ${S.length} stations, ${M.line.lengthKm} km. Tap a station for its exits.</p>
-    <section class="card">${lineList(false)}</section>
-    <p class="note">${esc(M.line.note)}</p>`;
-  }
-  function viewTrains() {
-    const near = state.pos ? nearestStation(state.pos) : null;
-    return `
-    <h2>Trains now</h2>
-    <p class="muted small">Where trains are on Line-6 right now. Tap a station for its next train times.</p>
-    <section class="card" id="live-card"></section>
-    ${near && near.d < 1500 ? `<section class="card" id="station-live" data-st="${near.s.id}"></section>` : ""}
-    <section class="card">
-      ${lineList(true)}
+      </ul></div>
       <p class="small muted legend"><span class="nw"><span class="tr S live">↓</span> to Motijheel</span> <span class="nw"><span class="tr N live">↑</span> to Uttara North</span> <span class="nw">Solid = live from riders</span> <span class="nw">Dashed = estimated</span></p>
-    </section>`;
+    </section>
+    <p class="note">${esc(M.line.note)}</p>`;
   }
 
   function viewStation(id) {
@@ -567,7 +555,7 @@
   function liveCard() {
     const lv = Live(), on = serviceStatus().on, trains = trainsNow();
     const nLive = trains.filter((t) => t.live).length, nEst = trains.length - nLive;
-    let h = `<h3>On the line <span class="badge ${nLive ? "high" : "med"}">${nLive ? "Live" : "Estimated"}</span></h3>`;
+    let h = `<h3>Trains now <span class="badge ${nLive ? "high" : "med"}">${nLive ? "Live" : "Estimated"}</span></h3>`;
     h += trains.length
       ? `<p class="small" style="margin:0">${trains.length} train${trains.length === 1 ? "" : "s"} on the line: ${nLive ? `<b>${nLive} reported live by riders</b>${nEst ? `, ${nEst} estimated from the timetable` : ""}` : "positions are estimated from the timetable"}.</p>`
       : `<p class="small muted" style="margin:0">${on ? "No trains expected on the line right now." : "Trains are not running now."}</p>`;
@@ -581,7 +569,7 @@
   function stationLiveCard(st) {
     const row = (dir) => { const n = nextAt(st, dir); if (!n && ((dir === "S" && st.km >= LEN) || (dir === "N" && st.km <= 0))) return "";
       return `<tr><td>To ${DIR_NAME[dir]}</td><td><b>${n ? fmtEta(n) : "No more today"}</b></td><td>${n ? (n.live ? `<span class="badge high">Live${n.n > 1 ? ` · ${n.n} riders` : ""}</span>` : `<span class="badge med">${n.first ? "First train" : "Estimated"}</span>`) : ""}</td></tr>`; };
-    return `<h3>Next train${$("#view .trains-wrap") ? ` at ${esc(st.name)}` : ""}</h3><table>${row("S")}${row("N")}</table>
+    return `<h3>Next train</h3><table>${row("S")}${row("N")}</table>
       <p class="small muted" style="margin:8px 0 0">Live times come from riders sharing on board. Estimates use the timetable and can be a few minutes off.</p>`;
   }
   function placeTrains() {
@@ -605,7 +593,7 @@
   window.addEventListener("live:init", () => wantLive(current()));
   window.addEventListener("resize", placeTrains);
   setInterval(renderLive, 5000);
-  const wantLive = (tab) => Live()?.want("view", tab === "trains" || tab === "station");
+  const wantLive = (tab) => Live()?.want("view", tab === "stations" || tab === "station");
 
   // ---------- map ----------
   let map = null, destMarker = null;
