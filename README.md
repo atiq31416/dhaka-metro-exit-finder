@@ -8,6 +8,9 @@ An installable web app (PWA) for Dhaka Metro Rail. It has no build step: every f
 - **Stations** tab: all 16 stations from Uttara North to Motijheel. Each one lists its exits, nearby places and the best exit for each place.
 - **Fares** tab: fare between any two stations, plus the MRT/Rapid Pass price (10% off).
 - **Info** tab: timings, whether trains are running now (Dhaka time), ticket and on-board rules, and notes on how reliable the data is.
+- **Trains now** (Stations tab) and **Next train** (each station page): where trains are on the line and how many minutes until the next one in each direction. Positions come from two places:
+  - **Estimated** (dashed markers): worked out from the timetable, headways and the 38 min end-to-end run in `data.js`. Works offline, but can be a few minutes off.
+  - **Live** (solid markers): riders on a train tap *Share my train*. The app snaps their GPS to the line and sends only their position along it (km from Uttara North), direction and speed, never their coordinates. A live train replaces any estimate near it. Sharing needs the train to move 300 m at train speed before it counts, stops when the rider leaves the line, and stops after 90 minutes.
 - **Works offline** after the first visit. Map tiles you have already viewed are cached too.
 - **Fix this exit**: when you're at a station, you can save the real sign name ("Exit A", "Gate 2") and stand at the exit to record its exact GPS position. Fixes stay on your phone. Info → *Copy my fixes* exports them so they can be merged into `data.js`.
 
@@ -15,7 +18,18 @@ An installable web app (PWA) for Dhaka Metro Rail. It has no build step: every f
 
 Analytics stays off until you fill in `firebase-config.js` with your Firebase web app config (Firebase console → Project settings → Your apps → Web app). Google Analytics must be enabled for the project so that `measurementId` exists.
 
-Events sent: `screen_view` (exit / stations / fares / info), `select_station`, `exit_recommended` (station, destination name, chosen exit), `fare_check`, `location_permission`, `compass_on`, `walking_route` and `exit_fixed`. GPS coordinates and personal data are never sent. If Firebase is blocked or the phone is offline, the app works as normal.
+Events sent: `screen_view` (exit / stations / fares / info), `select_station`, `exit_recommended` (station, destination name, chosen exit), `fare_check`, `location_permission`, `compass_on`, `walking_route`, `exit_fixed` and `live_share` (on / off). GPS coordinates and personal data are never sent. If Firebase is blocked or the phone is offline, the app works as normal.
+
+## Live trains setup (Firebase Realtime Database)
+
+Estimated trains work with no setup. Rider sharing stays off until `databaseURL` in `firebase-config.js` is filled in:
+
+1. Firebase console → **Build → Realtime Database → Create database** (pick Singapore, `asia-southeast1`, as it is closest to Dhaka; start in locked mode).
+2. **Rules** tab: paste the contents of `database.rules.json` and publish. Anyone can read; each rider can only write their own entry, with checked values and at most one write every 4 seconds.
+3. **Build → Authentication → Sign-in method**: enable **Anonymous**. Riders get an anonymous id, with no account or login.
+4. Copy the database URL from the top of the **Data** tab into `databaseURL` in `firebase-config.js` and redeploy.
+
+The free Spark plan allows 100 simultaneous connections. The app connects only while the Stations tab or a station page is open (or while sharing) and disconnects 30 seconds after you leave.
 
 ## Data and what to verify
 

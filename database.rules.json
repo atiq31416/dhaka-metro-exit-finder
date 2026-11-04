@@ -1,0 +1,17 @@
+{
+  "rules": {
+    "live": {
+      ".read": true,
+      ".indexOn": ["t"],
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['km', 'dir', 't']) && (!data.exists() || now - data.child('t').val() > 4000)",
+        "km": { ".validate": "newData.isNumber() && newData.val() >= -0.5 && newData.val() <= 21" },
+        "dir": { ".validate": "newData.val() === 'N' || newData.val() === 'S'" },
+        "v": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 120" },
+        "t": { ".validate": "newData.val() === now" },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}
