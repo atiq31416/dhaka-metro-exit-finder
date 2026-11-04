@@ -3,11 +3,11 @@
 // These values are public by design (they identify the project, they are not secrets).
 // While apiKey or measurementId is empty, analytics stays off and nothing is sent.
 window.FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: "",
-  measurementId: ""
+  apiKey: "AIzaSyCq5Jd6hlWFYJdVgwaF-ysUmplLj2tV8Cg",
+  authDomain: "dhaka-metro-exit-finder.firebaseapp.com",
+  projectId: "dhaka-metro-exit-finder",
+  storageBucket: "dhaka-metro-exit-finder.firebasestorage.app",
+  messagingSenderId: "772109446121",
+  appId: "1:772109446121:web:e31ec7cc2725860f5df978",
+  measurementId: "G-20B6HJ0PYF"
 };
