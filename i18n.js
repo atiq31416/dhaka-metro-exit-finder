@@ -3,7 +3,7 @@
 // Vars are inserted as given, so escape user or data text before passing it in.
 window.I18N = {
   en: {
-    tab_exit: "Navigation", tab_stations: "Stations", tab_fares: "Fares", tab_info: "Info",
+    tab_exit: "Navigation", tab_stations: "Stations", tab_line: "Live", tab_fares: "Fares", tab_info: "Info",
     brand_title: "Metro Exit Finder", brand_sub: "Dhaka MRT Line-6", lang_btn: "বাংলা", lang_aria: "Switch to Bangla",
 
     status_opens: "Opens {t}", status_closed: "Closed", status_open_till: "Open till {t}",
@@ -26,6 +26,11 @@ window.I18N = {
     at_going: "At {st}, going to <b>{d}</b>",
     take_the: "Take the <span class=\"hl\">{e}</span>",
     toward: "Toward {x}",
+    line_title: "Trains on the line", line_intro: "Every train moving between Uttara North and Motijheel right now. Live trains come from riders sharing their position; the rest follow the timetable.",
+    spd_live: "Live", spd_10: "10×", spd_60: "60×",
+    now_clock: "Now · {c}", sim_clock: "Fast-forward {x}× · {c}",
+    ln_count: "{n} trains running · {live} live", ln_next: "next {s} {m}", ln_min: "in {m} min", ln_arriving: "arriving",
+    line_tap: "Tap a train for details.", line_tap_hint: "Tap a train to see where it's going.",
     walk_dir: "Walk <span class=\"hl\">{d}</span> after exiting",
     ride_dir: "Take a rickshaw or CNG heading <span class=\"hl\">{d}</span>",
     ride_dist: "{d} straight-line to your destination",
@@ -118,7 +123,7 @@ window.I18N = {
   },
 
   bn: {
-    tab_exit: "নেভিগেশন", tab_stations: "স্টেশন", tab_fares: "ভাড়া", tab_info: "তথ্য",
+    tab_exit: "নেভিগেশন", tab_stations: "স্টেশন", tab_line: "লাইভ", tab_fares: "ভাড়া", tab_info: "তথ্য",
     brand_title: "মেট্রো এক্সিট ফাইন্ডার", brand_sub: "ঢাকা এমআরটি লাইন-৬", lang_btn: "English", lang_aria: "Switch to English",
 
     status_opens: "চালু হবে {t}", status_closed: "বন্ধ", status_open_till: "{t} পর্যন্ত চালু",
@@ -141,6 +146,11 @@ window.I18N = {
     at_going: "{st} স্টেশন থেকে যাবেন <b>{d}</b>",
     take_the: "<span class=\"hl\">{e}</span> দিয়ে বের হোন",
     toward: "{x} এর দিকে",
+    line_title: "লাইনে চলমান ট্রেন", line_intro: "উত্তরা উত্তর থেকে মতিঝিল পর্যন্ত এই মুহূর্তে চলা সব ট্রেন। লাইভ ট্রেন যাত্রীদের শেয়ার করা অবস্থান থেকে, বাকিগুলো সময়সূচি অনুযায়ী।",
+    spd_live: "লাইভ", spd_10: "১০×", spd_60: "৬০×",
+    now_clock: "এখন · {c}", sim_clock: "{x}× দ্রুত · {c}",
+    ln_count: "{n}টি ট্রেন চলছে · {live}টি লাইভ", ln_next: "পরের স্টেশন {s} {m}", ln_min: "{m} মিনিটে", ln_arriving: "পৌঁছাচ্ছে",
+    line_tap: "বিস্তারিত দেখতে ট্রেনে ট্যাপ করুন।", line_tap_hint: "কোন দিকে যাচ্ছে দেখতে একটি ট্রেনে ট্যাপ করুন।",
     walk_dir: "বের হয়ে <span class=\"hl\">{d}</span> দিকে হাঁটুন",
     ride_dir: "<span class=\"hl\">{d}</span> দিকে যাওয়া রিকশা বা সিএনজি নিন",
     ride_dist: "গন্তব্য পর্যন্ত সোজা দূরত্ব {d}",

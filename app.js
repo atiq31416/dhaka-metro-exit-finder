@@ -164,7 +164,7 @@
 
   // ---------- tab bar animation ----------
   // A lime pill slides under the tabs and follows the active one while it widens.
-  const TAB_ORDER = ["exit", "stations", "fares", "info"];
+  const TAB_ORDER = ["exit", "stations", "line", "fares", "info"];
   let lastTab = null, indRaf = 0;
   function moveIndicator(animate) {
     const bar = $("#tabs"), on = bar.querySelector("a.on");
@@ -197,14 +197,17 @@
     lastTab = navTab;
     const y = window.scrollY;
     if (map) { map.remove(); map = null; }
+    stopLineAnim();
     const v = $("#view");
     if (tab === "stations") v.innerHTML = viewStations();
     else if (tab === "station") v.innerHTML = viewStation(location.hash.split("/")[1]);
+    else if (tab === "line") v.innerHTML = viewLine();
     else if (tab === "fares") v.innerHTML = viewFares();
     else if (tab === "info") v.innerHTML = viewInfo();
     else if (tab === "admin") v.innerHTML = viewAdmin();
     else v.innerHTML = viewHome();
     bind(tab);
+    if (tab === "line") startLineAnim();
     wantLive(tab); renderLive();
     renderAlerts();
     bnDigits(v);
@@ -657,8 +660,8 @@
     return out;
   }
   // Estimated trains now, from the timetable. Each has km, dir and the departure time it came from.
-  function estimated() {
-    const { fri, mins } = dhakaClock();
+  function estimated(clock) {
+    const { fri, mins } = clock || dhakaClock();
     const d = fri ? M.schedule.days.friday : M.schedule.days.regular;
     const out = [];
     for (const [dir, range] of [["S", d.fromNorth], ["N", d.fromMotijheel]]) {
@@ -785,6 +788,138 @@
     renderLive();
   }
 
+
+  // ---------- live line view: trains gliding between stations ----------
+  // Same model as the Stations list (timetable estimate, replaced by rider reports when live),
+  // redrawn every animation frame so each train moves smoothly instead of jumping.
+  const LV = { raf: 0, speed: 1, simStart: null, realStart: 0, sel: null, els: new Map() };
+  const LY0 = 46, LGAP = 58, LX_S = 118, LX_N = 154;
+  const lineY = (km) => {
+    const i = clamp(S.findIndex((s) => s.km >= km), 1, S.length - 1), a = S[i - 1], b = S[i];
+    return LY0 + (i - 1 + (km - a.km) / ((b.km - a.km) || 1)) * LGAP;
+  };
+  function lineClock() {
+    const real = dhakaClock();
+    if (LV.speed === 1) return { ...real, sim: false };
+    const mins = LV.simStart + ((performance.now() - LV.realStart) / 60000) * LV.speed;
+    return { fri: real.fri, mins: mins % 1440, sim: true };
+  }
+  function lineTrains(clock) {
+    if (!clock.sim) return trainsNow().map((tr) => ({ ...tr, key: tr.live ? `L${tr.dir}${Math.round(tr.km * 2)}` : `E${tr.dir}${tr.dep}` }));
+    return estimated(clock).map((tr) => ({ ...tr, key: `E${tr.dir}${tr.dep}` }));
+  }
+  function nextStop(tr) {
+    const ahead = tr.dir === "S" ? S.find((s) => s.km > tr.km + 0.05) : [...S].reverse().find((s) => s.km < tr.km - 0.05);
+    return ahead ? { s: ahead, min: Math.abs(ahead.km - tr.km) / KM_PER_MIN } : null;
+  }
+  const fmtClock = (m) => { m = ((m % 1440) + 1440) % 1440; return fmt12(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(Math.floor(m % 60)).padStart(2, "0")}`); };
+
+  function viewLine() {
+    const H = LY0 * 2 + (S.length - 1) * LGAP;
+    const sp = (v, k) => `<button class="${LV.speed === v ? "on" : ""}" data-speed="${v}">${t(k)}</button>`;
+    return `
+    <h2>${t("line_title")}</h2>
+    <p class="muted small">${t("line_intro")}</p>
+    <section class="card line-head">
+      <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div><div class="small muted" id="ln-clock"></div><b id="ln-count"></b></div>
+        <div class="seg sm" role="tablist">${sp(1, "spd_live")}${sp(10, "spd_10")}${sp(60, "spd_60")}</div>
+      </div>
+      <div id="ln-sel" class="ln-sel small"></div>
+    </section>
+    <section class="card line-card">
+      <svg class="lsvg" id="lsvg" viewBox="0 0 340 ${H}" role="img" aria-label="${esc(t("line_title"))}">
+        <defs>
+          <linearGradient id="lgr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9f99d"/><stop offset=".5" stop-color="#a6e35a"/><stop offset="1" stop-color="#5fae2e"/></linearGradient>
+          <filter id="lglow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="4"/></filter>
+        </defs>
+        <rect x="${LX_S - 3}" y="${LY0}" width="6" height="${H - LY0 * 2}" rx="3" fill="url(#lgr)" opacity=".9"/>
+        <rect x="${LX_N - 3}" y="${LY0}" width="6" height="${H - LY0 * 2}" rx="3" fill="url(#lgr)" opacity=".9"/>
+        <text x="${LX_S}" y="${LY0 - 22}" class="lane-lbl" text-anchor="middle">↓</text>
+        <text x="${LX_N}" y="${LY0 - 22}" class="lane-lbl" text-anchor="middle">↑</text>
+        ${S.map((s, i) => { const y = LY0 + i * LGAP; return `
+        <g class="lst" data-i="${i}">
+          <rect x="${LX_S - 12}" y="${y - 7}" width="${LX_N - LX_S + 24}" height="14" rx="7" class="lplat"/>
+          <text x="${LX_S - 22}" y="${y + 4}" text-anchor="end" class="lcode" data-nd>${s.code}</text>
+          <text x="${LX_N + 22}" y="${y - 1}" class="lname">${esc(sn(s))}</text>
+          <text x="${LX_N + 22}" y="${y + 13}" class="lsub">${esc(bn() ? s.name : s.bn)}</text>
+        </g>`; }).join("")}
+        <g id="ltrains"></g>
+      </svg>
+      <p class="small muted legend" style="margin-top:6px"><span class="nw"><span class="ldot live"></span> ${t("legend_live")}</span> <span class="nw"><span class="ldot est"></span> ${t("legend_est")}</span> <span class="nw">${t("line_tap")}</span></p>
+    </section>`;
+  }
+
+  function trainSvg(tr) {
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("class", `ltr ${tr.dir} ${tr.live ? "live" : "est"}${tr.me ? " me" : ""}`);
+    g.innerHTML = `<rect class="halo" x="-11" y="-24" width="22" height="48" rx="11" filter="url(#lglow)"/>
+      <rect class="body" x="-8" y="-20" width="16" height="40" rx="8"/>
+      <rect class="win" x="-4.5" y="-13" width="9" height="7" rx="2"/><rect class="win" x="-4.5" y="-3" width="9" height="7" rx="2"/>
+      <path class="nose" d="M-4 14 L0 19 L4 14 Z"/>
+      <rect class="hit" x="-16" y="-28" width="32" height="56" fill="transparent"/>`;
+    g.addEventListener("click", () => { LV.sel = tr.key; drawLineFrame(true); });
+    return g;
+  }
+
+  function drawLineFrame(force) {
+    const box = $("#ltrains"); if (!box) return;
+    const clock = lineClock();
+    const trains = lineTrains(clock);
+    const seen = new Set();
+    for (const tr of trains) {
+      seen.add(tr.key);
+      let el = LV.els.get(tr.key);
+      if (!el) { el = trainSvg(tr); LV.els.set(tr.key, el); box.appendChild(el); }
+      el._tr = tr;
+      const x = tr.dir === "S" ? LX_S : LX_N, y = lineY(tr.km);
+      el.setAttribute("transform", `translate(${x} ${y})${tr.dir === "N" ? " rotate(180)" : ""}`);
+      el.classList.toggle("sel", LV.sel === tr.key);
+    }
+    for (const [k, el] of LV.els) if (!seen.has(k)) { el.remove(); LV.els.delete(k); }
+    // light up a platform while a train is standing at it
+    document.querySelectorAll("#lsvg .lst").forEach((g) => { const s = S[+g.dataset.i]; g.classList.toggle("busy", trains.some((tr) => Math.abs(tr.km - s.km) < 0.25)); });
+    // header text: refresh a few times a second, not every frame
+    const now = performance.now();
+    if (force || !LV.txtAt || now - LV.txtAt > 400) {
+      LV.txtAt = now;
+      const nLive = trains.filter((x) => x.live).length;
+      const ck = $("#ln-clock"); if (ck) ck.textContent = clock.sim ? t("sim_clock", { c: fmtClock(clock.mins), x: LV.speed }) : t("now_clock", { c: fmtClock(clock.mins) });
+      const cn = $("#ln-count"); if (cn) cn.textContent = trains.length ? t("ln_count", { n: trains.length, live: nLive }) : t(serviceStatus().on && !clock.sim ? "no_trains_expected" : "not_running");
+      const sel = trains.find((x) => x.key === LV.sel), sb = $("#ln-sel");
+      if (sb) {
+        if (sel) { const ns = nextStop(sel);
+          sb.innerHTML = `<span class="ldot ${sel.live ? "live" : "est"}"></span> ${t("to_dir", { d: esc(dirTo(sel.dir)) })}${ns ? " · " + t("ln_next", { s: esc(sn(ns.s)), m: ns.min < 0.5 ? t("ln_arriving") : t("ln_min", { m: Math.round(ns.min) }) }) : ""} · ${t(sel.live ? "b_live" : "b_est")}`;
+        } else sb.textContent = trains.length ? t("line_tap_hint") : "";
+        bnDigits(sb);
+      }
+      bnDigits(ck); bnDigits(cn);
+    }
+  }
+  function lineLoop() { drawLineFrame(); LV.raf = requestAnimationFrame(lineLoop); }
+  function startLineAnim() {
+    stopLineAnim(); LV.els.clear();
+    document.querySelectorAll("[data-speed]").forEach((b) => b.onclick = () => setLineSpeed(+b.dataset.speed));
+    if (LV.speed !== 1) setLineSpeed(LV.speed, true);
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) { drawLineFrame(true); LV.raf = setInterval(() => drawLineFrame(true), 2000); LV.iv = true; }
+    else LV.raf = requestAnimationFrame(lineLoop);
+  }
+  function stopLineAnim() { if (LV.iv) clearInterval(LV.raf); else cancelAnimationFrame(LV.raf); LV.raf = 0; LV.iv = false; }
+  function setLineSpeed(v, keepStart) {
+    LV.speed = v;
+    if (v !== 1 && !keepStart) {
+      // Fast-forward from now; if trains aren't running, start from today's first train.
+      const c = dhakaClock(), d = c.fri ? M.schedule.days.friday : M.schedule.days.regular;
+      const first = toMin(d.fromNorth[0]), last = toMin(d.fromMotijheel[1]);
+      LV.simStart = c.mins >= first && c.mins <= last ? c.mins : first;
+      LV.realStart = performance.now();
+    } else if (v !== 1 && LV.simStart == null) { LV.simStart = dhakaClock().mins; LV.realStart = performance.now(); }
+    document.querySelectorAll("[data-speed]").forEach((b) => b.classList.toggle("on", +b.dataset.speed === v));
+    LV.sel = null; drawLineFrame(true);
+    track("line_speed", { speed: v });
+  }
+
   // ---------- trains UI ----------
   function liveCard() {
     const lv = Live(), on = serviceStatus().on, trains = trainsNow();
@@ -830,7 +965,7 @@
   window.addEventListener("live:init", () => wantLive(current()));
   window.addEventListener("resize", placeTrains);
   setInterval(renderLive, 5000);
-  const wantLive = (tab) => Live()?.want("view", tab === "stations" || tab === "station" || (tab === "exit" && state.mode === "rail"));
+  const wantLive = (tab) => Live()?.want("view", tab === "stations" || tab === "station" || tab === "line" || (tab === "exit" && state.mode === "rail"));
 
   // ---------- map ----------
   let map = null, destMarker = null;

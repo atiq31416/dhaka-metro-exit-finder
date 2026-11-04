@@ -331,3 +331,33 @@ ul.fac li .fi { color: var(--brand); margin-top: 2px; }
 .haxis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
 .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
 .sw.nowsw { background: transparent; outline: 2px solid var(--ink); outline-offset: -1px; }
+
+/* ---------- Live line view ---------- */
+.line-card { padding: 10px 6px 14px; overflow: hidden; }
+.lsvg { width: 100%; height: auto; display: block; font-family: var(--font-body); }
+.lsvg .lane-lbl { fill: var(--muted); font-size: 13px; font-weight: 700; }
+.lsvg .lplat { fill: var(--card-2); stroke: var(--line); stroke-width: 1; transition: fill .4s, stroke .4s; }
+.lsvg .lst.busy .lplat { fill: rgba(166,227,90,.22); stroke: var(--brand); }
+.lsvg .lcode { fill: var(--muted); font-size: 11px; }
+.lsvg .lname { fill: var(--ink); font-size: 14px; font-family: var(--font-title); font-weight: 500; }
+.lsvg .lsub { fill: var(--muted); font-size: 10.5px; }
+.lsvg .ltr { cursor: pointer; }
+.lsvg .ltr .body { fill: var(--brand); stroke: #141514; stroke-width: 1.5; }
+.lsvg .ltr .win { fill: #141514; opacity: .75; }
+.lsvg .ltr .nose { fill: #141514; opacity: .8; }
+.lsvg .ltr .halo { fill: var(--brand); opacity: 0; }
+.lsvg .ltr.live .halo { opacity: .45; animation: ltr-pulse 1.6s ease-in-out infinite; }
+.lsvg .ltr.est .body { fill: #3a4a2a; stroke: var(--brand); stroke-dasharray: 3 2; }
+.lsvg .ltr.est .win { fill: var(--brand); opacity: .55; }
+.lsvg .ltr.est .nose { fill: var(--brand); }
+.lsvg .ltr.sel .body { stroke: #fff; stroke-width: 2.5; stroke-dasharray: none; }
+.lsvg .ltr.me .body { fill: var(--blue); }
+@keyframes ltr-pulse { 0%, 100% { opacity: .15; } 50% { opacity: .55; } }
+.ln-sel { margin-top: 10px; min-height: 20px; color: var(--ink); }
+.ldot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin-right: 2px; }
+.ldot.live { background: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.ldot.est { border: 1.5px dashed var(--brand); background: #3a4a2a; }
+.seg.sm button { padding: 6px 12px; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .lsvg .ltr.live .halo { animation: none; } }
+.seg.sm { margin: 0; }
+.seg.sm button { min-height: 34px; flex: 0 0 auto; }
