@@ -46,6 +46,11 @@ Alerts use the same Realtime Database as live trains. Until steps 1 and 2 are do
 3. **Realtime Database → Data**: add a child `admins`, and under it a child named with your UID and the value `true` (so `admins/<your uid> = true`).
 4. Open the app at `#admin` (or Info → *Post a service alert*), sign in, and post. Riders see it within about 3 minutes. Use **Hide after** so old alerts disappear on their own, or delete them on the same page.
 
+## How the exit is chosen
+
+- **Walkable (under about 700 m), or off to the side of the road:** the exit on the destination's side, so you never cross the road.
+- **Further along the road (rickshaw, CNG or bus):** traffic in Bangladesh keeps left, so the app picks the exit on the left-hand side of the road for the direction you'll travel. That kerb already has vehicles heading toward your destination. Example: at Pallabi, going to Mirpur DOHS, take the West exit and a rickshaw heading north.
+
 ## Data and what to verify
 
 Everything is in `data.js`. Edit it and redeploy to correct something.

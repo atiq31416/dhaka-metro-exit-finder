@@ -232,6 +232,26 @@
     ex.sort((a, b) => a.d - b.d);
     return ex;
   }
+
+  // Pick the exit a rider should actually use.
+  // Close by (walkable): the exit on the destination's side, so you never cross the road.
+  // Further away: you'll take a rickshaw, CNG or bus along the road, and traffic in
+  // Bangladesh keeps LEFT. So exit on the left-hand side of the road for the direction
+  // you'll travel; that kerb has vehicles already heading toward the destination.
+  const RIDE_MIN = 700;
+  const angDiff = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+  function recommend(st, dest) {
+    const ex = bestExit(st, dest);
+    const near = ex[0];
+    const walk = { exits: ex, b: near, near, mode: "walk", brg: bearing(near, dest) };
+    if (ex.length < 2 || near.d < RIDE_MIN) return walk;
+    const toDest = bearing(st, dest);
+    const heading = angDiff(toDest, st.axis) <= 90 ? st.axis : (st.axis + 180) % 360;
+    if (Math.cos(rad(angDiff(toDest, heading))) < 0.6) return walk; // more than ~53° off the road: likely via a side street, so use the near side
+    const left = (heading + 270) % 360;
+    const pick = ex.reduce((p, e) => angDiff(bearing(st, e), left) < angDiff(bearing(st, p), left) ? e : p, ex[0]);
+    return { exits: [pick, ...ex.filter((e) => e !== pick)], b: pick, near, mode: "ride", heading, brg: heading };
+  }
   function confBadge(e) {
     if (e.mine) return `<span class="badge mine">${t("conf_mine")}</span>`;
     return badge(e.conf);
@@ -305,13 +325,16 @@
 
     let result = ""; // the compass card only appears once both station and destination are picked
     if (st && state.dest) {
-      const ex = bestExit(st, state.dest);
-      const b = ex[0];
-      const brg = bearing(b, state.dest);
+      const rec = recommend(st, state.dest);
+      const ex = rec.exits;
+      const b = rec.b;
+      const brg = rec.brg;
       const nb = nearestStation(state.dest);
       const better = nb.s.id !== st.id && dist(st, state.dest) - nb.d > 600
         ? `<p class="note" style="margin-top:12px">${t("tip_closer", { st: esc(sn(nb.s)), p: esc(state.dest.n), d1: fmtDist(nb.d), d2: fmtDist(dist(st, state.dest)) })} <button class="btn sm" data-use="${nb.s.id}">${t("switch")}</button></p>` : "";
-      const sideNote = ex.length > 1 && ex[1].d - b.d < 40
+      const sideNote = rec.mode === "ride"
+        ? `<p class="small muted" style="margin-top:10px">${t("ride_why")}${rec.near !== b ? " " + t("walk_alt", { e: esc(rec.near.name) }) : ""}</p>`
+        : ex.length > 1 && ex[1].d - b.d < 40
         ? `<p class="small muted">${t("both_same")}</p>` : "";
       result = `
       <section class="card answer">
@@ -323,8 +346,8 @@
           <div class="ring">${ticks(brg)}
             <div class="needle"><span class="n" data-nd>N</span><svg id="needle" viewBox="0 0 24 24" style="transform:rotate(${brg}deg)"><path d="M12 2 4.5 20.3l.7.7L12 18l6.8 3 .7-.7z"/></svg></div>
           </div>
-          <div style="font-size:18px">${t("walk_dir", { d: dirName(brg) })}</div>
-          <div class="muted small">${t("straight", { d: fmtDist(b.d), m: walkMin(b.d * 1.3) })}</div>
+          <div style="font-size:18px">${rec.mode === "ride" ? t("ride_dir", { d: dirName(brg) }) : t("walk_dir", { d: dirName(brg) })}</div>
+          <div class="muted small">${rec.mode === "ride" ? t("ride_dist", { d: fmtDist(dist(b, state.dest)) }) : t("straight", { d: fmtDist(b.d), m: walkMin(b.d * 1.3) })}</div>
           ${compassOn ? `<div class="small muted" id="hdg">${t("arrow_turns")}</div>` : `<div><button class="btn sm" id="compass">${t("compass_btn")}</button></div>`}
         </div>
         ${sideNote}
@@ -406,7 +429,7 @@
     <section class="card">
       <h3>${t("nearby_h")}</h3>
       <table><tr><th>${t("th_place")}</th><th>${t("th_best")}</th><th>${t("th_dist")}</th></tr>
-      ${st.landmarks.map((l) => { const b = bestExit(st, l)[0]; return `<tr><td>${esc(l.n)}</td><td>${esc(b.name)}</td><td>${fmtDist(b.d)}</td></tr>`; }).join("")}
+      ${st.landmarks.map((l) => { const b = recommend(st, l).b; return `<tr><td>${esc(l.n)}</td><td>${esc(b.name)}</td><td>${fmtDist(b.d)}</td></tr>`; }).join("")}
       </table>
       <button class="btn primary" style="margin-top:12px;width:100%" data-use="${st.id}" data-go="exit">${t("find_exit_here")}</button>
     </section>
@@ -819,7 +842,7 @@
     const brand = getComputedStyle(document.documentElement).getPropertyValue("--brand").trim() || "#a6e35a";
     L.marker([st.lat, st.lng], { icon: pin(brand, 18) }).addTo(map).bindTooltip(sn(st));
     const ex = exitsOf(st);
-    const best = state.dest && clickable ? bestExit(st, state.dest)[0] : null;
+    const best = state.dest && clickable ? recommend(st, state.dest).b : null;
     ex.forEach((e) => {
       const on = best && best.i === e.i;
       L.marker([e.lat, e.lng], { icon: L.divIcon({ className: "", iconSize: [0, 0], html: `<div style="transform:translate(${e.side === "W" ? "-100%" : e.side === "E" ? "0" : "-50%"},${e.side === "N" ? "-100%" : e.side === "S" ? "0" : "-50%"});white-space:nowrap;background:${on ? brand : "#2a2b2a"};color:${on ? "#141514" : "#f4f5f3"};border:2px solid ${brand};border-radius:999px;padding:3px 9px;font:700 12px 'DM Sans',system-ui">${esc(e.name)}</div>` }) }).addTo(map);
@@ -839,7 +862,7 @@
   function setDest(d) {
     state.dest = d; render(true);
     const st = byId(state.stationId);
-    if (st) { const b = bestExit(st, d)[0]; track("exit_recommended", { station: st.id, destination: d.n, source: d.source || "chip", exit: b.name, exit_confidence: b.mine ? "user" : b.conf }); }
+    if (st) { const r = recommend(st, d), b = r.b; track("exit_recommended", { station: st.id, destination: d.n, source: d.source || "chip", mode: r.mode, exit: b.name, exit_confidence: b.mine ? "user" : b.conf }); }
     setTimeout(() => $(".answer")?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
   }
 
@@ -847,8 +870,7 @@
     updatePlat();
     const n = $("#needle"); if (!n || !state.dest) return;
     const st = byId(state.stationId); if (!st) return;
-    const b = bestExit(st, state.dest)[0];
-    const brg = bearing(b, state.dest);
+    const brg = recommend(st, state.dest).brg;
     n.style.transform = `rotate(${(brg - (state.heading || 0) + 360) % 360}deg)`;
     const t = $("#ticks"); if (t && state.heading != null) t.style.transform = `rotate(${-state.heading}deg)`;
   }

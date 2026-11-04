@@ -76,8 +76,8 @@ window.METRO = {
     },
     { id: "pallabi", code: "G4", name: "Pallabi", bn: "পল্লবী", km: 4.9, lat: 23.8265, lng: 90.3645, axis: 180, opened: "2023-01-25",
       exits: [
-        { side: "W", name: "West exit", toward: "Pallabi, Mirpur Section 12 residential area", towardBn: "পল্লবী, মিরপুর ১২ আবাসিক এলাকা", conf: "med" },
-        { side: "E", name: "East exit", toward: "Mirpur DOHS, Mirpur Cantonment direction", towardBn: "মিরপুর ডিওএইচএস, মিরপুর ক্যান্টনমেন্টের দিক", conf: "med" }
+        { side: "W", name: "West exit", toward: "Pallabi, Section 12; rickshaws heading north to Mirpur DOHS and Cantonment", towardBn: "পল্লবী, মিরপুর ১২; মিরপুর ডিওএইচএস ও ক্যান্টনমেন্টগামী উত্তরমুখী রিকশা", conf: "high" },
+        { side: "E", name: "East exit", toward: "East side of Begum Rokeya Sarani, rides heading south toward Mirpur 11", towardBn: "বেগম রোকেয়া সরণির পূর্ব পাশ, মিরপুর ১১-এর দিকে দক্ষিণমুখী গাড়ি", conf: "med" }
       ],
       landmarks: [
         { n: "Mirpur 12 bus stand", lat: 23.8285, lng: 90.3650 },
