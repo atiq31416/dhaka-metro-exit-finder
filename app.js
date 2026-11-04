@@ -59,7 +59,9 @@
     pos: null, acc: null, geoErr: null, heading: null,
     stationId: null,
     dest: null,
-    from: store.get("dm-from", "uttara-north"), to: store.get("dm-to", "motijheel")
+    from: store.get("dm-from", "uttara-north"), to: store.get("dm-to", "motijheel"),
+    mode: store.get("dm-mode", "exit"), // home screen: "rail" = Find Metro Rail, "exit" = Find Exit
+    toSt: store.get("dm-tost", null) // Find Metro Rail destination station
   };
 
   // ---------- service status ----------
@@ -172,7 +174,7 @@
     else if (tab === "station") v.innerHTML = viewStation(location.hash.split("/")[1]);
     else if (tab === "fares") v.innerHTML = viewFares();
     else if (tab === "info") v.innerHTML = viewInfo();
-    else v.innerHTML = viewExit();
+    else v.innerHTML = viewHome();
     bind(tab);
     wantLive(tab); renderLive();
     if (keepScroll) window.scrollTo(0, y); else window.scrollTo(0, 0);
@@ -205,8 +207,7 @@
     return S.map((s) => `<option value="${s.id}" ${s.id === sel ? "selected" : ""}>${s.code} · ${esc(s.name)} (${s.bn})</option>`).join("");
   }
 
-  function viewExit() {
-    const st = byId(state.stationId);
+  function geoHtml() {
     let geo = "";
     if (state.pos) {
       const n = nearestStation(state.pos);
@@ -217,6 +218,18 @@
     } else {
       geo = `<button class="btn primary" id="geo" style="margin-top:10px;width:100%">📍 Allow location to find my station</button>`;
     }
+    return geo;
+  }
+
+  function modeSwitch() {
+    const b = (m, label) => `<button role="tab" aria-selected="${state.mode === m}" class="${state.mode === m ? "on" : ""}" data-mode="${m}">${label}</button>`;
+    return `<div class="seg" role="tablist">${b("rail", "Find Metro Rail")}${b("exit", "Find Exit")}</div>`;
+  }
+  const viewHome = () => modeSwitch() + (state.mode === "rail" ? viewRail() : viewExit());
+
+  function viewExit() {
+    const st = byId(state.stationId);
+    const geo = geoHtml();
 
     let result = ""; // the compass card only appears once both station and destination are picked
     if (st && state.dest) {
@@ -324,6 +337,90 @@
     <section class="card small">
       <b>Next stations:</b> ${i > 0 ? `↑ ${esc(S[i - 1].name)} (to Uttara North)` : "terminus"} · ${i < S.length - 1 ? `↓ ${esc(S[i + 1].name)} (to Motijheel)` : "terminus"}
     </section>`;
+  }
+
+  // ---------- find metro rail (which platform) ----------
+  // st.axis is the bearing the viaduct runs toward Motijheel. Trains are assumed to keep LEFT
+  // (like Bangladesh Railway), so the platform for your train is on the left of its direction of travel.
+  function railPlan(st, to) {
+    const dir = to.km > st.km ? "S" : "N";
+    const travel = dir === "S" ? st.axis : (st.axis + 180) % 360;
+    return { dir, travel, side: (travel + 270) % 360, term: dir === "S" ? S[S.length - 1] : S[0],
+      stops: Math.abs(S.indexOf(to) - S.indexOf(st)), mins: Math.max(2, Math.round(Math.abs(to.km - st.km) / KM_PER_MIN)) };
+  }
+  function relText(side) {
+    if (state.heading == null) return `Go to the <span class="hl">${dirName(side)}</span> side`;
+    const d = (side - state.heading + 360) % 360;
+    const where = d < 45 || d > 315 ? "straight ahead" : d < 135 ? "on your right" : d < 225 ? "behind you" : "on your left";
+    return `Your platform is <span class="hl">${where}</span>`;
+  }
+  // Top view of the station: up = the way your train runs. The whole drawing turns with the compass.
+  function platformSvg(p) {
+    const rot = (p.travel - (state.heading || 0) + 360) % 360;
+    const arrow = (x, y, up, col) => `<path d="M${x} ${y + (up ? -9 : 9)} l7 ${up ? 10 : -10} h-14z" fill="${col}"/>`;
+    return `<div class="plat-wrap"><svg class="plat" viewBox="0 0 240 240" aria-hidden="true">
+      <circle cx="120" cy="120" r="116" fill="var(--card-2)" stroke="var(--line)"/>
+      <g id="plat-rot" style="transform:rotate(${rot}deg);transform-origin:120px 120px">
+        <rect x="54" y="34" width="26" height="172" rx="6" fill="var(--brand)"/>
+        <rect x="160" y="34" width="26" height="172" rx="6" fill="var(--card)" stroke="var(--line)"/>
+        <line x1="96" y1="20" x2="96" y2="220" stroke="#6b6d6a" stroke-width="3" stroke-dasharray="2 5"/>
+        <line x1="144" y1="20" x2="144" y2="220" stroke="#6b6d6a" stroke-width="3" stroke-dasharray="2 5"/>
+        <rect x="84" y="78" width="24" height="64" rx="8" fill="var(--brand)"/>
+        ${arrow(96, 62, true, "var(--brand)")}
+        <rect x="132" y="100" width="24" height="64" rx="8" fill="#4a4b4a"/>
+        ${arrow(144, 180, false, "#6b6d6a")}
+      </g>
+      <circle cx="120" cy="120" r="7" fill="var(--blue)" stroke="#fff" stroke-width="3"/>
+    </svg>
+    <span class="plat-n" id="plat-n" style="transform:rotate(${-(state.heading || 0)}deg)"><b>N</b></span></div>`;
+  }
+  function railNext(st, p) {
+    const n = nextAt(st, p.dir);
+    return n ? `Next train to ${esc(p.term.name)}: <b>${fmtEta(n)}</b> ${n.live ? `<span class="badge high">Live</span>` : `<span class="badge med">${n.first ? "First train" : "Estimated"}</span>`}`
+      : `No more trains to ${esc(p.term.name)} today.`;
+  }
+  function viewRail() {
+    const st = byId(state.stationId), to = byId(state.toSt);
+    let result = "";
+    if (st && to && st.id !== to.id) {
+      const p = railPlan(st, to);
+      result = `
+      <section class="card answer" id="rail-card">
+        <div class="small muted">At ${esc(st.name)}, going to <b>${esc(to.name)}</b></div>
+        <div class="big">Board the train to <span class="hl">${esc(p.term.name)}</span></div>
+        <div class="muted">Platform on the ${dirName(p.side)} side of the tracks <span class="badge med">Likely</span></div>
+        <div class="compass">
+          ${platformSvg(p)}
+          <div style="font-size:18px" id="rel">${relText(p.side)}</div>
+          <div class="muted small">The green platform is yours. The arrow shows the way your train runs.</div>
+          <div class="muted small">${p.stops} stop${p.stops === 1 ? "" : "s"} · about ${p.mins} min · Tk ${fareBetween(st, to)}</div>
+          <div class="small" id="rail-next">${railNext(st, p)}</div>
+          ${compassOn ? `<div class="small muted">The drawing turns with your phone. Hold it flat.</div>` : `<div><button class="btn sm" id="compass">Turn on compass</button></div>`}
+        </div>
+        <p class="small muted" style="margin:12px 0 0">Platform signs show the last station, so follow the signs for <b>${esc(p.term.name)}</b>. The side assumes trains keep left, so check the sign before you go up.</p>
+      </section>`;
+    }
+    const toOpts = S.filter((x) => !st || x.id !== st.id).map((x) => `<option value="${x.id}" ${x.id === state.toSt ? "selected" : ""}>${x.code} · ${esc(x.name)} (${x.bn})</option>`).join("");
+    return `
+    ${result}
+    <section class="card">
+      <label class="lbl" for="st">Select your metro station</label>
+      <select id="st"><option value="">Choose a station</option>${stationOptions(state.stationId)}</select>
+      ${geoHtml()}
+    </section>
+    <section class="card">
+      <label class="lbl" for="dst">Where are you going?</label>
+      <select id="dst"><option value="">Choose a destination station</option>${toOpts}</select>
+    </section>
+    ${st && to ? "" : `<p class="muted small">Pick your station and the station you're going to. The app shows which platform to use, and the compass turns the drawing to match where you're facing.</p>`}`;
+  }
+  function updatePlat() {
+    const g = $("#plat-rot"); if (!g) return;
+    const st = byId(state.stationId), to = byId(state.toSt); if (!st || !to) return;
+    const p = railPlan(st, to);
+    g.style.transform = `rotate(${(p.travel - (state.heading || 0) + 360) % 360}deg)`;
+    const n = $("#plat-n"); if (n) n.style.transform = `rotate(${-(state.heading || 0)}deg)`;
+    const r = $("#rel"); if (r) r.innerHTML = relText(p.side);
   }
 
   // ---------- fares ----------
@@ -587,13 +684,15 @@
   function renderLive() {
     const c = $("#live-card"); if (c) { c.innerHTML = liveCard(); $("#share-start")?.addEventListener("click", startShare); $("#share-stop")?.addEventListener("click", () => stopShare()); }
     const sc = $("#station-live"); if (sc) sc.innerHTML = stationLiveCard(byId(sc.dataset.st));
+    const rn = $("#rail-next"), st = byId(state.stationId), to = byId(state.toSt);
+    if (rn && st && to && st.id !== to.id) rn.innerHTML = railNext(st, railPlan(st, to));
     placeTrains();
   }
   window.addEventListener("live:update", renderLive);
   window.addEventListener("live:init", () => wantLive(current()));
   window.addEventListener("resize", placeTrains);
   setInterval(renderLive, 5000);
-  const wantLive = (tab) => Live()?.want("view", tab === "stations" || tab === "station");
+  const wantLive = (tab) => Live()?.want("view", tab === "stations" || tab === "station" || (tab === "exit" && state.mode === "rail"));
 
   // ---------- map ----------
   let map = null, destMarker = null;
@@ -630,6 +729,7 @@
   }
 
   function updateNeedle() {
+    updatePlat();
     const n = $("#needle"); if (!n || !state.dest) return;
     const st = byId(state.stationId); if (!st) return;
     const b = bestExit(st, state.dest)[0];
@@ -709,7 +809,18 @@
       state.stationId = b.dataset.use; track("select_station", { station: b.dataset.use, method: "gps_suggestion" });
       if (b.dataset.go) location.hash = "#" + b.dataset.go; else render(true);
     });
-    if (tab === "exit") {
+    document.querySelectorAll("[data-mode]").forEach((b) => b.onclick = () => {
+      if (state.mode === b.dataset.mode) return;
+      state.mode = b.dataset.mode; store.set("dm-mode", state.mode); track("home_mode", { mode: state.mode }); render(true);
+    });
+    if (tab === "exit" && state.mode === "rail") {
+      $("#st").onchange = (e) => { state.stationId = e.target.value || null; if (state.stationId) track("select_station", { station: state.stationId, method: "manual" }); render(true); };
+      $("#dst").onchange = (e) => { state.toSt = e.target.value || null; store.set("dm-tost", state.toSt); if (state.toSt) track("platform_finder", { from: state.stationId || "", to: state.toSt }); render(true); };
+      $("#geo")?.addEventListener("click", startGeo);
+      $("#compass")?.addEventListener("click", startCompass);
+      updatePlat();
+    }
+    if (tab === "exit" && state.mode !== "rail") {
       $("#st").onchange = (e) => { state.stationId = e.target.value || null; state.dest = null; if (state.stationId) track("select_station", { station: state.stationId, method: "manual" }); render(true); };
       $("#geo")?.addEventListener("click", startGeo);
       $("#compass")?.addEventListener("click", startCompass);
