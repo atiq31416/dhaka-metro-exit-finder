@@ -11,16 +11,6 @@ An installable web app (PWA) for Dhaka Metro Rail. It has no build step: every f
 - **Works offline** after the first visit. Map tiles you have already viewed are cached too.
 - **Fix this exit**: when you're at a station, you can save the real sign name ("Exit A", "Gate 2") and stand at the exit to record its exact GPS position. Fixes stay on your phone. Info → *Copy my fixes* exports them so they can be merged into `data.js`.
 
-## Hosting (pick one; all free, all HTTPS, which location and install need)
-
-1. **Netlify Drop (easiest):** open https://app.netlify.com/drop and drag the `dhaka-metro` folder onto the page. You get a link right away.
-2. **GitHub Pages:** in this repo go to Settings → Pages → Deploy from a branch → `main` / `(root)`. The app will be at `https://atiq31416.github.io/dhaka-metro-exit-finder/`.
-3. **Cloudflare Pages** or **Vercel:** create a new project from the folder or repo. Leave the build command empty and set the output directory to `/`.
-
-Open the link on your phone, then choose **Add to Home Screen** (Safari) or **Install app** (Chrome).
-
-To test locally, run `python3 -m http.server` in this folder and open http://localhost:8000. Location works on localhost.
-
 ## Data and what to verify
 
 Everything is in `data.js`. Edit it and redeploy to correct something.
