@@ -11,6 +11,12 @@ An installable web app (PWA) for Dhaka Metro Rail. It has no build step: every f
 - **Works offline** after the first visit. Map tiles you have already viewed are cached too.
 - **Fix this exit**: when you're at a station, you can save the real sign name ("Exit A", "Gate 2") and stand at the exit to record its exact GPS position. Fixes stay on your phone. Info → *Copy my fixes* exports them so they can be merged into `data.js`.
 
+## Analytics (Firebase)
+
+Analytics stays off until you fill in `firebase-config.js` with your Firebase web app config (Firebase console → Project settings → Your apps → Web app). Google Analytics must be enabled for the project so that `measurementId` exists.
+
+Events sent: `screen_view` (exit / stations / fares / info), `select_station`, `exit_recommended` (station, destination name, chosen exit), `fare_check`, `location_permission`, `compass_on`, `walking_route` and `exit_fixed`. GPS coordinates and personal data are never sent. If Firebase is blocked or the phone is offline, the app works as normal.
+
 ## Data and what to verify
 
 Everything is in `data.js`. Edit it and redeploy to correct something.

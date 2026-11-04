@@ -50,6 +50,7 @@
         lat: f.lat ?? pos.lat, lng: f.lng ?? pos.lng, mine: !!(f.name || f.toward || f.lat), placed: f.lat != null };
     });
   }
+  const track = (name, params) => { try { window.track?.(name, params); } catch {} };
   const byId = (id) => S.find((s) => s.id === id);
   const nearestStation = (p) => S.reduce((best, s) => { const d = dist(p, s); return d < best.d ? { s, d } : best; }, { s: S[0], d: Infinity });
 
@@ -94,11 +95,13 @@
     watchId = navigator.geolocation.watchPosition((p) => {
       const first = !state.pos;
       const prevNear = state.pos ? nearestStation(state.pos).s.id : null;
+      if (first) track("location_permission", { state: "granted" });
       state.pos = { lat: p.coords.latitude, lng: p.coords.longitude }; state.acc = p.coords.accuracy; state.geoErr = null;
       const n = nearestStation(state.pos);
       // Re-draw only when something visible changes, so typing and the map are not interrupted.
       if ((first || prevNear !== n.s.id) && (current() === "exit" || current() === "stations")) render(true);
     }, (err) => {
+      track("location_permission", { state: err.code === 1 ? "denied" : "error" });
       state.geoErr = err.code === 1 ? "Location permission was denied. You can still pick your station by hand, or allow location in your browser's site settings." : "Could not get your location right now.";
       watchId = null; render(true);
     }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
@@ -120,7 +123,7 @@
       }
       window.addEventListener("deviceorientationabsolute", onOrient, true);
       window.addEventListener("deviceorientation", onOrient, true);
-      compassOn = true; toast("Compass on. Hold your phone flat."); render(true);
+      compassOn = true; track("compass_on"); toast("Compass on. Hold your phone flat."); render(true);
     } catch { toast("Compass is not available on this device."); }
   }
 
@@ -159,6 +162,7 @@
       void vEl.offsetWidth;
       vEl.classList.add(dir > 0 ? "enter-r" : dir < 0 ? "enter-l" : "enter-up");
     }
+    if (navTab !== lastTab) track("screen_view", { screen_name: navTab, firebase_screen: navTab });
     lastTab = navTab;
     const y = window.scrollY;
     if (map) { map.remove(); map = null; }
@@ -238,7 +242,7 @@
         ${sideNote}
         ${better}
         <div class="row" style="margin-top:14px">
-          <a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=${b.lat},${b.lng}&destination=${state.dest.lat},${state.dest.lng}&travelmode=walking">Walking route</a>
+          <a class="btn" target="_blank" rel="noopener" data-track="walking_route" href="https://www.google.com/maps/dir/?api=1&origin=${b.lat},${b.lng}&destination=${state.dest.lat},${state.dest.lng}&travelmode=walking">Walking route</a>
           <a class="btn" href="#station/${st.id}">All exits</a>
         </div>
       </section>`;
@@ -408,7 +412,7 @@
     if (clickable) {
       if (state.dest) { destMarker = L.marker([state.dest.lat, state.dest.lng], { icon: pin("#d93025", 16) }).addTo(map).bindTooltip(state.dest.n); pts.push([state.dest.lat, state.dest.lng]);
         if (best) L.polyline([[best.lat, best.lng], [state.dest.lat, state.dest.lng]], { color: brand, dashArray: "6 6", weight: 3 }).addTo(map); }
-      map.on("click", (ev) => setDest({ n: "Dropped pin", lat: ev.latlng.lat, lng: ev.latlng.lng }));
+      map.on("click", (ev) => setDest({ n: "Dropped pin", lat: ev.latlng.lat, lng: ev.latlng.lng, source: "map" }));
     } else {
       st.landmarks.forEach((l) => L.circleMarker([l.lat, l.lng], { radius: 5, color: "#d93025" }).addTo(map).bindTooltip(l.n));
     }
@@ -417,6 +421,8 @@
 
   function setDest(d) {
     state.dest = d; render(true);
+    const st = byId(state.stationId);
+    if (st) { const b = bestExit(st, d)[0]; track("exit_recommended", { station: st.id, destination: d.n, source: d.source || "chip", exit: b.name, exit_confidence: b.mine ? "user" : b.conf }); }
     setTimeout(() => $(".answer")?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
   }
 
@@ -440,7 +446,7 @@
     const draw = (online) => {
       const all = [...local, ...online].slice(0, 8);
       res.innerHTML = all.length ? all.map((r, i) => `<button data-r="${i}"><b>${esc(r.n)}</b><div class="small muted">${esc(r.sub || "")}</div></button>`).join("") : `<div class="small muted" style="padding:8px 0">No match yet.</div>`;
-      res.querySelectorAll("button").forEach((b) => b.onclick = () => setDest(all[+b.dataset.r]));
+      res.querySelectorAll("button").forEach((b) => b.onclick = () => setDest({ ...all[+b.dataset.r], source: "search" }));
     };
     draw([]);
     clearTimeout(searchT);
@@ -486,7 +492,7 @@
         cur.name = $("#fn", dlg).value.trim() || undefined;
         cur.toward = $("#ft2", dlg).value.trim() || undefined;
         if (here) { cur.lat = here.lat; cur.lng = here.lng; }
-        f[i] = cur; saveFixes(); toast("Saved on this phone."); render(true);
+        f[i] = cur; saveFixes(); track("exit_fixed", { station: st.id, exit_index: i, gps: !!here }); toast("Saved on this phone."); render(true);
       }
       dlg.remove();
     });
@@ -497,11 +503,11 @@
   function bind(tab) {
     document.querySelectorAll("[data-use]").forEach((b) => b.onclick = () => {
       if (state.stationId !== b.dataset.use) state.dest = null;
-      state.stationId = b.dataset.use;
+      state.stationId = b.dataset.use; track("select_station", { station: b.dataset.use, method: "gps_suggestion" });
       if (b.dataset.go) location.hash = "#" + b.dataset.go; else render(true);
     });
     if (tab === "exit") {
-      $("#st").onchange = (e) => { state.stationId = e.target.value || null; state.dest = null; render(true); };
+      $("#st").onchange = (e) => { state.stationId = e.target.value || null; state.dest = null; if (state.stationId) track("select_station", { station: state.stationId, method: "manual" }); render(true); };
       $("#geo")?.addEventListener("click", startGeo);
       $("#compass")?.addEventListener("click", startCompass);
       const st = byId(state.stationId);
@@ -517,8 +523,8 @@
       if (st) { document.querySelectorAll("[data-fix]").forEach((b) => b.onclick = () => openFix(st, +b.dataset.fix)); initMap(st, false); }
     }
     if (tab === "fares") {
-      $("#ff").onchange = (e) => { state.from = e.target.value; store.set("dm-from", state.from); render(true); };
-      $("#ft").onchange = (e) => { state.to = e.target.value; store.set("dm-to", state.to); render(true); };
+      $("#ff").onchange = (e) => { state.from = e.target.value; store.set("dm-from", state.from); track("fare_check", { from: state.from, to: state.to }); render(true); };
+      $("#ft").onchange = (e) => { state.to = e.target.value; store.set("dm-to", state.to); track("fare_check", { from: state.from, to: state.to }); render(true); };
       $("#swap").onclick = () => { [state.from, state.to] = [state.to, state.from]; store.set("dm-from", state.from); store.set("dm-to", state.to); render(true); };
     }
     if (tab === "info") {
@@ -529,6 +535,8 @@
       $("#reset").onclick = () => { if (confirm("Remove all exit fixes saved on this phone?")) { fixes = {}; saveFixes(); render(true); } };
     }
   }
+
+  document.addEventListener("click", (e) => { const t = e.target.closest?.("[data-track]"); if (t) track(t.dataset.track, { station: state.stationId || "" }); });
 
   // ---------- boot ----------
   renderStatus(); setInterval(renderStatus, 60000);
