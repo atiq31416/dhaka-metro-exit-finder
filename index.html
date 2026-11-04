@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Metro Exit Finder</title>
+<meta name="description" content="Dhaka Metro Rail (MRT Line-6) stations, timings, fares and the right exit for where you are going.">
+<meta name="theme-color" content="#1d1e1d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Metro Exit">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="preload" href="fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/funnel-display.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="dot"></span><div><b>Metro Exit Finder</b><small>Dhaka MRT Line-6</small></div></div>
+  <div id="status" class="status"></div>
+</header>
+
+<main id="view"></main>
+
+<nav class="tabs" id="tabs">
+  <a href="#exit" data-tab="exit"><svg viewBox="0 0 24 24"><path d="M12 2 4.5 20.3l.7.7L12 18l6.8 3 .7-.7z"/></svg><span>Exit</span></a>
+  <a href="#stations" data-tab="stations"><svg viewBox="0 0 24 24"><circle cx="6" cy="5" r="2.5"/><circle cx="6" cy="19" r="2.5"/><circle cx="6" cy="12" r="2.5"/><path d="M5 5h2v14H5z"/><path d="M11 4h10v2H11zm0 7h10v2H11zm0 7h10v2H11z"/></svg><span>Stations</span></a>
+  <a href="#fares" data-tab="fares"><svg viewBox="0 0 24 24"><path d="M3 6h18v12H3zm2 2v8h14V8zm7 1.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/></svg><span>Fares</span></a>
+  <a href="#info" data-tab="info"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2zm0-8h-2V7h2z"/></svg><span>Info</span></a>
+</nav>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
