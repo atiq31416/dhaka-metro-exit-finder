@@ -8,7 +8,7 @@ An installable web app (PWA) for Dhaka Metro Rail. It has no build step: every f
 - **Stations** tab: all 16 stations from Uttara North to Motijheel. Each one lists its exits, nearby places and the best exit for each place.
 - **Fares** tab: fare between any two stations, plus the MRT/Rapid Pass price (10% off).
 - **Info** tab: timings, whether trains are running now (Dhaka time), ticket and on-board rules, and notes on how reliable the data is.
-- **Trains now** (Stations tab) and **Next train** (each station page): where trains are on the line and how many minutes until the next one in each direction. Positions come from two places:
+- **Trains** tab and **Next train** (each station page): where trains are on the line and how many minutes until the next one in each direction. Positions come from two places:
   - **Estimated** (dashed markers): worked out from the timetable, headways and the 38 min end-to-end run in `data.js`. Works offline, but can be a few minutes off.
   - **Live** (solid markers): riders on a train tap *Share my train*. The app snaps their GPS to the line and sends only their position along it (km from Uttara North), direction and speed, never their coordinates. A live train replaces any estimate near it. Sharing needs the train to move 300 m at train speed before it counts, stops when the rider leaves the line, and stops after 90 minutes.
 - **Works offline** after the first visit. Map tiles you have already viewed are cached too.
